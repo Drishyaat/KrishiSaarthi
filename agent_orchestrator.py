@@ -3,6 +3,17 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 import time
 
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+except:
+    load_dotenv()
+    api_key = os.getenv("GEMINI_API_KEY")
+
+if not api_key:
+    raise ValueError("GEMINI_API_KEY not found in environment variables or Streamlit secrets.")
+
+genai.configure(api_key=api_key)
+
 # Load and configure API key once at module level
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -55,7 +66,7 @@ Instructions:
 Keep responses concise and practical for farmers.
 """
             
-            model = genai.GenerativeModel("gemini-1.5-pro-latest")
+            model = genai.GenerativeModel("gemini-1.5-flash-latest")
             response = model.generate_content(prompt)
             return response.text
             
