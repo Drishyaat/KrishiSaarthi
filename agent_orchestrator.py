@@ -2,21 +2,15 @@ import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 import time
+import streamlit as st
 
+# Load and configure API key once at module level
 try:
     api_key = st.secrets["GEMINI_API_KEY"]
 except:
     load_dotenv()
     api_key = os.getenv("GEMINI_API_KEY")
 
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in environment variables or Streamlit secrets.")
-
-genai.configure(api_key=api_key)
-
-# Load and configure API key once at module level
-load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found in environment variables.")
 
@@ -30,7 +24,7 @@ def query_agent(text: str, max_retries=3):
 
 def query_agent_with_context(text: str, conversation_history: list = None, max_retries=3):
     """
-    Query the Gemini AI agent with conversation context
+    Query the Gemini AI agent with conversation context for agricultural advice
     """
     if conversation_history is None:
         conversation_history = []
@@ -40,30 +34,35 @@ def query_agent_with_context(text: str, conversation_history: list = None, max_r
             # Build context from conversation history
             context = ""
             if conversation_history:
-                context = "Previous conversation:\n"
+                context = "Previous conversation context:\n"
                 for i, (user_msg, ai_response) in enumerate(conversation_history[-3:]):  # Last 3 exchanges
-                    context += f"User: {user_msg}\n"
-                    context += f"AI: {ai_response}\n"
-                context += "\nContinuing the conversation...\n"
+                    context += f"Farmer: {user_msg}\n"
+                    context += f"Agricultural AI: {ai_response}\n"
+                context += "\n--- Continuing conversation ---\n"
             
             prompt = f"""
-You are an expert agricultural AI assistant helping a farmer diagnose crop issues.
+You are an expert agricultural AI assistant with deep knowledge of:
+- Crop diseases and pest management
+- Soil health and nutrition
+- Irrigation and water management
+- Seasonal farming practices
+- Government agricultural schemes
+- Sustainable farming techniques
+- Market trends and crop planning
 
 {context}
 
-Current user input: {text}
+Current farmer input: {text}
 
-Instructions:
-1. If this is a follow-up response to your previous questions, analyze the user's answer and provide more specific diagnosis.
-2. If this seems like a new issue, start with initial assessment.
-3. Ask specific, targeted follow-up questions only when needed for accurate diagnosis.
-4. Once you have enough information, provide:
-   - Likely diagnosis
-   - Specific treatment recommendations
-   - Prevention measures
-   - Government schemes or resources if applicable
+Guidelines for response:
+1. If this is answering your previous questions, provide specific diagnosis and actionable treatment plans
+2. If this is a new issue, ask 2-3 targeted questions to gather essential information
+3. Always provide practical, implementable advice
+4. Mention relevant government schemes or subsidies when applicable
+5. Consider regional farming practices and local conditions
+6. Keep responses farmer-friendly (avoid overly technical jargon)
 
-Keep responses concise and practical for farmers.
+Provide specific, actionable advice that farmers can implement immediately.
 """
             
             model = genai.GenerativeModel("gemini-1.5-flash-latest")
@@ -79,12 +78,12 @@ Keep responses concise and practical for farmers.
                     time.sleep(wait_time)
                     continue
                 else:
-                    return "❗ API quota limit reached. Please wait a few minutes and try again."
+                    return "❗ API quota limit reached. Please wait a few minutes and try again. Our agricultural AI is temporarily busy helping other farmers."
             
             elif 'invalid_argument' in error_str or 'permission' in error_str:
-                return "❗ API configuration error. Please check your API key and permissions."
+                return "❗ API configuration error. Please contact support if this issue persists."
             
             else:
-                return f"❗ Unexpected error: {str(e)}"
+                return f"❗ Temporary service issue. Please try again. Error details: {str(e)}"
     
-    return "❗ Failed to get response after multiple attempts. Please try again later."
+    return "❗ Unable to connect to agricultural AI service after multiple attempts. Please try again in a few minutes."
